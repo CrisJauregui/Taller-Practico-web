@@ -12,6 +12,12 @@ export class OrdersController {
     return this.ordersService.findAll();
   }
 
+  // Fixed route declared before dynamic :id routes
+  @Get('pending-queue')
+  findPendingQueue() {
+    return this.ordersService.findPendingQueue();
+  }
+
   @Patch(':id')
   update(@Param('id') id: string, @Body() updateOrderDto: UpdateOrderDto) {
     return this.ordersService.update(Number(id), updateOrderDto);
@@ -30,6 +36,11 @@ export class OrdersController {
   @Get(':id/estimate')
   estimatePreparationTime(@Param('id') id: string) {
     return this.ordersService.estimatePreparationTime(Number(id));
+  }
+
+  @Get(':id/priority')
+  getPriority(@Param('id') id: string) {
+    return this.ordersService.getPriority(Number(id));
   }
 
   @Get('pending')

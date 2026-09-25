@@ -7,6 +7,7 @@ import { LessThan, MoreThan, Repository } from 'typeorm';
 import { UpdateOrderDto } from './dto/update-order.dto';
 import { OrderRulesService } from './order-rules/order-rules.service';
 import { OrderPreparationEstimateService } from './order-preparation-estimate/order-preparation-estimate.service';
+import { OrderPriorityService } from './order-priority.service';
 
 @Injectable()
 export class OrdersService {
@@ -20,6 +21,8 @@ export class OrdersService {
     private readonly orderRulesService: OrderRulesService,
 
     private readonly orderPreparationEstimateService: OrderPreparationEstimateService,
+
+    private readonly orderPriorityService: OrderPriorityService,
   ) {}
 
   async create(createOrderDto: CreateOrderDto): Promise<OrderEntity> {
@@ -97,6 +100,49 @@ export class OrdersService {
   }> {
     const order = await this.findOne(id);
     return this.orderPreparationEstimateService.estimate(order);
+  }
+
+  async getPriority(id: number): Promise<{
+    orderId: number;
+    status: string;
+    quantity: number;
+    priority: string;
+    message: string;
+  }> {
+    const order = await this.findOne(id); //Reutiliza findOne, que ya lanza 404 si no existe
+    const { priority, message } = this.orderPriorityService.classify(order);
+
+    return {
+      orderId: order.id,
+      status: order.status,
+      quantity: order.quantity,
+      priority,
+      message,
+    };
+  }
+
+  async findPendingQueue(): Promise<{
+    totalPending: number;
+    showing: number;
+    orders: OrderEntity[];
+  }> {
+    const [orders, totalPending] = await Promise.all([
+      this.ordersRepository.find({
+        where: { status: 'pending' },
+        relations: {
+          customer: true,
+        },
+        order: { id: 'ASC' },
+        take: 5,
+      }),
+      this.ordersRepository.countBy({ status: 'pending' }),
+    ]);
+
+    return {
+      totalPending,
+      showing: orders.length,
+      orders,
+    };
   }
 
   async findRecentPending(): Promise<OrderEntity[]> {

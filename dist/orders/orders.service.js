@@ -20,16 +20,19 @@ const order_entity_1 = require("./entities/order.entity");
 const typeorm_2 = require("typeorm");
 const order_rules_service_1 = require("./order-rules/order-rules.service");
 const order_preparation_estimate_service_1 = require("./order-preparation-estimate/order-preparation-estimate.service");
+const order_priority_service_1 = require("./order-priority.service");
 let OrdersService = class OrdersService {
     ordersRepository;
     customersRepository;
     orderRulesService;
     orderPreparationEstimateService;
-    constructor(ordersRepository, customersRepository, orderRulesService, orderPreparationEstimateService) {
+    orderPriorityService;
+    constructor(ordersRepository, customersRepository, orderRulesService, orderPreparationEstimateService, orderPriorityService) {
         this.ordersRepository = ordersRepository;
         this.customersRepository = customersRepository;
         this.orderRulesService = orderRulesService;
         this.orderPreparationEstimateService = orderPreparationEstimateService;
+        this.orderPriorityService = orderPriorityService;
     }
     async create(createOrderDto) {
         const customer = await this.customersRepository.findOneBy({
@@ -83,6 +86,35 @@ let OrdersService = class OrdersService {
         const order = await this.findOne(id);
         return this.orderPreparationEstimateService.estimate(order);
     }
+    async getPriority(id) {
+        const order = await this.findOne(id);
+        const { priority, message } = this.orderPriorityService.classify(order);
+        return {
+            orderId: order.id,
+            status: order.status,
+            quantity: order.quantity,
+            priority,
+            message,
+        };
+    }
+    async findPendingQueue() {
+        const [orders, totalPending] = await Promise.all([
+            this.ordersRepository.find({
+                where: { status: 'pending' },
+                relations: {
+                    customer: true,
+                },
+                order: { id: 'ASC' },
+                take: 5,
+            }),
+            this.ordersRepository.countBy({ status: 'pending' }),
+        ]);
+        return {
+            totalPending,
+            showing: orders.length,
+            orders,
+        };
+    }
     async findRecentPending() {
         return this.ordersRepository.find({
             where: { status: 'pending' },
@@ -102,6 +134,7 @@ exports.OrdersService = OrdersService = __decorate([
     __metadata("design:paramtypes", [typeorm_2.Repository,
         typeorm_2.Repository,
         order_rules_service_1.OrderRulesService,
-        order_preparation_estimate_service_1.OrderPreparationEstimateService])
+        order_preparation_estimate_service_1.OrderPreparationEstimateService,
+        order_priority_service_1.OrderPriorityService])
 ], OrdersService);
 //# sourceMappingURL=orders.service.js.map

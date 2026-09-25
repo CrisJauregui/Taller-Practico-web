@@ -1,12 +1,25 @@
+Si hice uso de la IA le especifique que no me lo hiciera sino que me fuese explicando como en los talleres que hemos hecho en clase guiados y me fuese explicando las cosas que no entendia. 
+
+La peticion baja cuando el controller recibe la petición, luego se convierte el id en número y llama a ordersService.getPriority(5).
+OrdersService llama a findOne(5), que usa el repository para buscar el pedido en PostgreSQL. Si no existe, lanza el 404.
+Cuando el pedido se encuentra, OrdersService llama a OrderPriorityService.classify(order), que en teoria hace que las reglas se apliquen y manda tanto la prioridad como el mensaje.
+Luego el OrdersService arma la respuesta final y el controller la devuelve.
 
 
+1. ¿Por qué `OrderPriorityService` no necesita un repository?
+R// Porque de lo unico que es responsable es de que aplique las reglas de prioridad en los pedidos ya existentes, el no tiene que buscar, ni guardar, ni modificar datos, solo analiza el pedido y devuelve una clasificación.
 
+2. ¿Qué responsabilidad tiene `OrdersService` al consultar la prioridad?
+R// El coordina el proceso o sea primero busca el pedido y si no lo encuentra lanza error, luego envia el pedido, y luego manda la respuesta.
 
+3. ¿Cuál es la diferencia entre `totalPending` y `showing`?
+R// totalPending es el numero total de los pedidos que hay pendientes que estan en la base de datos y showing es basicamente cuantos hay en la respuesta que te da. 
 
+4. ¿Por qué las pruebas de prioridad pueden ejecutarse sin PostgreSQL?
+R// Porque OrderPriorityService no usa la base de datos. literal solo recibe los pedidos y segun sus caracteristicas decide la prioridad que tiene cada uno.
 
-
-
-
+5. ¿Qué problema de diseño aparecería si la prioridad se calculara en el controller?
+R// Que se mezclarian las responsabilidades que tiene cada uno haciendo que sea mas dificil de probar y que el codigo se vuelva mas dificil de mantener.
 
 
 <p align="center">
